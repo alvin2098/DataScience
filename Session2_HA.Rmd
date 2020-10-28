@@ -1,0 +1,121 @@
+---
+title: "Session 2 Hausaufgabe, Alvin Aziz"
+output:
+  html_document:
+    df_print: paged
+---
+
+<br />
+
+# Libraries und Daten laden
+
+```{r, results='hide'}
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+```{r, results='hide'}
+BX_Users <- read_delim("C:/Users/Visitor/OneDrive - haw-hamburg.de/5. Semester/Data Science/R/BX-Users.csv", 
+    ";", escape_double = FALSE, col_types = cols(Age = col_double()), 
+    trim_ws = TRUE)
+
+BX_Books <- read_delim("C:/Users/Visitor/OneDrive - haw-hamburg.de/5. Semester/Data Science/R/BX-Books.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+BX_Book_Ratings <- read_delim("C:/Users/Visitor/OneDrive - haw-hamburg.de/5. Semester/Data Science/R/BX-Book-Ratings.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+```
+<br />
+
+
+# Frage 1:
+## Gibt es eine lineare Beziehung zwischen Anzahl Bücher pro Publisher und Anzahl Ratings, die die Bücher eines Publishers erhalten?
+
+<br />
+
+### - Step  1 (Neue Datensätze erstellen)
+
+
+bookAmountPerPublisher: Publisher & Anzahl ihrer Bücher
+<br />
+bookRatingAmountPerPublisher: Publisher & Anzahl Ratings ihrer Bücher
+<br />
+graphOne: Publisher & Anzahl ihrer Bücher & Anzahl Ratings ihrer Bücher
+
+```{r, results='hide'}
+bookAmountPerPublisher <- BX_Books %>% 
+  select(`ISBN`, `Publisher`) %>% 
+  group_by(`Publisher`) %>%
+  summarise(bookAmount = n()) %>%
+  arrange(desc(bookAmount))
+
+bookRatingAmountPerPublisher <- BX_Book_Ratings %>% 
+  full_join(BX_Books) %>%
+  select(`ISBN`, `Book-Rating`, `Publisher`) %>%
+  filter(`Book-Rating` > 0) %>% 
+  group_by(`Publisher`) %>%
+  summarise(bookRatingAmount = n()) %>% 
+  arrange(desc(bookRatingAmount))
+
+graphOne <- bookAmountPerPublisher %>% 
+  full_join(bookRatingAmountPerPublisher) %>% 
+  select(bookAmount, bookRatingAmount) %>% 
+  filter(`bookRatingAmount` < 13000)
+```
+
+### - Step 2 (Lineare Beziehung & Plot)
+
+```{r}
+resultOne <- lm(bookAmount ~ bookRatingAmount, data=graphOne)
+summary(resultOne)
+plot(graphOne)
+abline(7.021293, 0.503699)
+```
+
+<br />
+ToDos: 
+
+
+Group publisher's books -DONE- <br />
+Remove zeros from ratings -DONE- <br />
+Figure out bookRatingAmount -DONE- <br />
+Linear regression & plot -DONE-
+
+## Antwort zu Frage 1
+### Ja es gibt eine lineare Beziehung von 0.6831689.
+
+
+
+<br />
+<br />
+
+
+
+# Frage 2:
+## Haben ältere Bücher mehr Ratings, weil sie mehr Zeit haben, um Ratings zu sammeln? 
+
+<br />
+
+### - Step  1 (Neues Dataset erstellen)
+
+```{r}
+var3 <- BX_Books %>%
+  full_join(BX_Book_Ratings) %>% 
+  select(`ISBN`, `Year-Of-Publication`, `Book-Rating`) %>% 
+  filter(`Year-Of-Publication` < 2021, `Year-Of-Publication` > 1300, `Book-Rating` > 0) %>% 
+  arrange(`Year-Of-Publication`) %>% 
+  group_by(`Year-Of-Publication`) %>% 
+  summarise(ratingsPerBook = n())
+```
+### - Step  2 (Visualisierung)
+```{r}
+#normale Ansicht
+plot(var3)
+#gezoomte Ansicht
+plot(var3, xlim=c(1980, 2020))
+```
+
+## Antwort zu Frage 2
+### Es gibt einen Anstieg von Bewertungen von Bücher, die in 1980+ publiziert wurden. Es stimmt, dass ältere Bücher mehr Reviews haben, aber es gibt auch vielleicht externe Faktoren, die die Daten beeinflussen können. 
+
