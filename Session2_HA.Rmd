@@ -119,3 +119,26 @@ plot(var3, xlim=c(1980, 2020))
 ## Antwort zu Frage 2
 ### Es gibt einen Anstieg von Bewertungen von Bücher, die in 1980+ publiziert wurden. Es stimmt, dass ältere Bücher mehr Reviews haben, aber es gibt auch vielleicht externe Faktoren, die die Daten beeinflussen können. 
 
+
+```{r}
+books <- BX_Books %>%
+  select(ISBN,`Book-Title`,`Book-Author`,`Year-Of-Publication`,Publisher)
+rm(BX_Books)
+users <- BX_Users %>%
+  mutate(Age = as.numeric(Age))
+rm(BX_Users)
+ratings <- BX_Book_Ratings %>%
+  left_join(books)
+rm(BX_Book_Ratings)
+ratings <- ratings %>%
+  filter(!is.na(`Book-Title`))
+users <- users %>%
+  filter(!is.na(Age)) %>%
+  mutate(country = str_remove(Location,".*,")) %>%
+  filter(country != "")
+all <- ratings %>%
+  left_join(users) %>%
+  select(-Location)
+write_csv(all, "all.csv")
+```
+
