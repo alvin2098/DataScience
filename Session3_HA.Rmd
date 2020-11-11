@@ -16,10 +16,8 @@ all <- read_csv("all.csv")
 all$`Book-Author` <- sapply(all$`Book-Author`,function(row) iconv(row, "latin1", "ASCII", sub=""))
 all <- all %>% 
   mutate(`Book-Author` = str_replace_all(`Book-Author`, "[^[:alnum:]. ]", "")) %>% 
-  mutate(`Book-Author` = tolower(`Book-Author`)) %>% 
+  mutate(`Book-Author` = tolower(`Book-Author`))
 write_csv(all, "all2.csv")
-
-
 ```
 
 # Erstellen Sie eine Analyse, bei der nicht die Bücher, sondern die Autoren in den Transaktionen enthalten sind
@@ -51,5 +49,28 @@ plot(basket_rules_hi, method="graph", main="Books", engine="interactive")
 
 <br />
 
-#
+# Wie kann man nun noch sicherstellen, dass nur die Autoren weiterempfohlen werden, deren Bücher man auch (mehrheitlich) gut fand?
+
+```{r}
+bookRatingAmountPerAuthor <- all %>% 
+  filter(`Book-Rating` > 0) %>% 
+  group_by(`Book-Author`) %>%
+  summarise(bookRatingAmount = n())
+```
+```{r}
+all <- all %>% 
+  full_join(bookRatingAmountPerAuthor)
+```
+
+
+
+```{r}
+all <- all %>% 
+  filter(`Book-Rating` > mean(`Book-Rating`))
+```
+# plot this
+
+
+# Welche anderen Features wären sinnvoll?
+# Es wäre sinvoll, nur die Bücher, die mehr als 10 bewertungen haben, zu empfehlen. Das gleiche auch für die Publisher, die besser als die durchschnittliche bewertet. Noch nützlich wäre zum Beispiel, Bücher für bestimmten Altersgruppen anhand der Bewertungen zu empfehlen.
 
