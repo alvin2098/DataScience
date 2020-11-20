@@ -1,7 +1,9 @@
 ---
-title: "Session 4 Hausaufgabe, Alvin Aziz"
+title: "Session 4 Hausaufgabe"
+author: "Pascal Belger und Alvin Aziz"
 output: html_notebook
 ---
+# In dieser Datei gibt es kein richtiges Ergebnis. Ich und Pascal haben mehrere Stunden mit der Datei rumgespielt, können aber die Ergebnisse unten nicht interpretieren. Es war auch schwierig zu verstehen, weil in der Beispielsdatei selten Kommentare gibt über die verschiedenen Algoritmen. Wir würden uns wünschen nochmal alle Modelle im Detail anzuschauen. Auch auf Code und Ergebnisebene.
 
 ```{r}
 library(tidyverse)
@@ -10,44 +12,137 @@ library(caret)
 library(pROC)
 ```
 
+
+
+# Das Notebook mit weiteren Features (Family member on board (Y/N),  Ticket Fare)
 ```{r}
 titanic <- read_delim("titanic.csv", ";", 
     escape_double = FALSE, trim_ws = TRUE)
-```
-# Anzahl der Überlebenden und nicht Überlebten
-```{r}
-titanic %>%
-  group_by(survived) %>%
-  summarize(count = n())
-```
-# Anzahl der Überlebenden pro Geschlecht
-```{r}
-(titanicSurXGen <- titanic %>%
-  select(survived,sex)) %>%
-  filter(survived == 1) %>%
-  group_by(sex) %>% 
-  summarize(survivorGender = n())
-```
-# Anzahl der Überlebenden pro Klasse
-```{r}
-(titanicSurXClass <- titanic %>%
-  select(survived,pclass)) %>%
-  filter(survived == 1) %>%
-  group_by(pclass) %>% 
-  summarize(survivorClass = n())
-```
-# Anzahl der Reisenden, die als Einzelperson gereist sind vergleichen mit der Anzahl der Reisenden, die deren Familienmitglieder ebenfalls mitgereist sind.
-```{r}
-titanicCompare1 <- titanic %>% 
-  select(survived, sibsp, parch)
-
-(titanicSingle <- titanicCompare1 %>% 
+(titanicSingle <- titanic %>% 
   filter(sibsp == 0, parch == 0) %>% 
-  group_by(survived) %>% 
-  summarise(titanicSingle = n()))
-
-(titanicFamilies <- titanicCompare1 %>% 
-  filter(sibsp > 0, parch > 0) %>%   
-  group_by(survived) %>% 
-  summarise(titanicFamilies = n()))
+  mutate(familyStatus = "single"))
+(titanicFamilies <- titanic %>% 
+  filter(sibsp > 0, parch > 0) %>% 
+  mutate(familyStatus = "family"))
+titanic = titanicSingle %>% 
+  full_join(titanicFamilies)
 ```
+```{r}
+(titanic.df <- titanic %>%
+  select(survived,pclass,sex,age,fare,familyStatus))
+```
+
+```{r}
+titanic.df <- titanic.df %>%
+  mutate(age = as.numeric(str_replace(age,",","."))) %>% 
+  mutate(fare = as.numeric(str_replace(fare,",",".")))
+```
+
+```{r}
+(titanic.df <- na.omit(titanic.df))
+```
+
+```{r}
+titanic.df <- titanic.df %>%
+  mutate(sex = ifelse(sex == "female", 1, 0)) %>% 
+  mutate(fare = round(fare, digits = 0))
+```
+
+```{r}
+set.seed(107)
+inTrain <- createDataPartition(
+  y = titanic.df$survived,
+  p = .8,
+  list = FALSE)
+training <- titanic.df[ inTrain,]
+testing  <- titanic.df[-inTrain,]
+```
+
+```{r}
+model <- svm(survived ~ ., data = training)
+summary(model)
+pred <- predict(model, testing[,-1], probability = FALSE)
+```
+
+```{r}
+(test.resultsSVM <- cbind(pred, testing))
+```
+
+
+```{r}
+pROC_obj <- roc(test.resultsSVM$survived, test.resultsSVM$pred,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+```
+
+# Naive Bayes
+
+```{r}
+my_training <- training %>%
+  mutate(survived = as.factor(survived))%>%
+  mutate(sex = as.factor(sex))%>%
+  mutate(pclass = as.factor(pclass)) %>%
+  mutate(age = as.factor(age)) %>%
+  mutate(fare = as.factor(fare))
+model <- naiveBayes(survived ~ ., data = my_training)
+model
+```
+
+```{r}
+my_testing <- testing %>%
+  mutate(sex = as.factor(sex)) %>%
+  mutate(pclass = as.factor(pclass))%>%
+  mutate(age = as.factor(age)) %>% 
+  mutate(fare = as.factor(fare))
+pred <- predict(model, my_testing)
+table(pred, my_testing$survived)
+```
+
+
+```{r}
+(test.resultsBayes <- cbind(pred, my_testing))
+```
+
+```{r}
+test.resultsBayes <- test.resultsBayes %>%
+  mutate(pred = as.numeric(pred))
+pROC_obj <- roc(as.numeric(as.character(test.resultsBayes$survived)), test.resultsBayes$pred,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+```
+# Decision Tree
+
+```{r}
+library(rpart)
+library(rpart.plot)
+tree<- rpart(survived~., data = training, method = 'class')
+rpart.plot(tree)
+```
+```{r}
+dt_results <- predict(tree, testing[,-1], type = 'prob')
+head(model.resultsTree <- cbind(testing,dt_results),500)
+```
+```{r}
+test.resultsTree <- model.resultsTree %>%
+  mutate(pred = ifelse(`1`>=0.5,1,0)) %>% 
+  mutate(pred = ifelse(pred>=0.5,1,0)) %>% 
+  select(-`0`, -`1`) %>% 
+  select(pred, survived, pclass, sex, age, fare, familyStatus)
+table(test.resultsSVM$pred, testing$survived)
+```
+
+
+```{r}
+pROC_obj <- roc(model.resultsTree$survived,model.resultsTree$`1`,
+            smoothed = TRUE,
+            # arguments for ci
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            # arguments for plot
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+```
+# In unserem Fall funktioniert SVM am besten. Wir sind aber nicht sicher ob die Ergebnisse gut sind und ob die die Algoritmen repräsentiert. 
