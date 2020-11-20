@@ -48,6 +48,8 @@ titanic.df <- titanic.df %>%
   mutate(fare = round(fare, digits = 0))
 ```
 
+# SVM
+
 ```{r}
 set.seed(107)
 inTrain <- createDataPartition(
