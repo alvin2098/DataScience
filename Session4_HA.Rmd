@@ -14,13 +14,13 @@ library(pROC)
 titanic <- read_delim("titanic.csv", ";", 
     escape_double = FALSE, trim_ws = TRUE)
 ```
-# Anzahl der Überlebten und nicht Überlebten
+# Anzahl der Überlebenden und nicht Überlebten
 ```{r}
 titanic %>%
   group_by(survived) %>%
   summarize(count = n())
 ```
-# Anzahl der Überlebten pro Geschlecht
+# Anzahl der Überlebenden pro Geschlecht
 ```{r}
 (titanicSurXGen <- titanic %>%
   select(survived,sex)) %>%
@@ -28,7 +28,7 @@ titanic %>%
   group_by(sex) %>% 
   summarize(survivorGender = n())
 ```
-# Anzahl der Überlebten pro Klasse
+# Anzahl der Überlebenden pro Klasse
 ```{r}
 (titanicSurXClass <- titanic %>%
   select(survived,pclass)) %>%
@@ -36,12 +36,18 @@ titanic %>%
   group_by(pclass) %>% 
   summarize(survivorClass = n())
 ```
-# ???
+# Anzahl der Reisenden, die als Einzelperson gereist sind vergleichen mit der Anzahl der Reisenden, die deren Familienmitglieder ebenfalls mitgereist sind.
 ```{r}
-titanic.df <- titanic.df %>%
-  mutate(sex = ifelse(sex == "female", 1, 0))
-```
-```{r}
-titanic.df <- titanic.df %>%
-  mutate(embarked = ifelse(embarked == "S", 1, 0))
+titanicCompare1 <- titanic %>% 
+  select(survived, sibsp, parch)
+
+(titanicSingle <- titanicCompare1 %>% 
+  filter(sibsp == 0, parch == 0) %>% 
+  group_by(survived) %>% 
+  summarise(titanicSingle = n()))
+
+(titanicFamilies <- titanicCompare1 %>% 
+  filter(sibsp > 0, parch > 0) %>%   
+  group_by(survived) %>% 
+  summarise(titanicFamilies = n()))
 ```
