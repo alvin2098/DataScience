@@ -62,7 +62,7 @@ rect.hclust(books_wide.hc, k=3, border="red")
 ```
 
 ```{r}
-k.means.fit <- kmeans(books_wide.scaled, 3) 
+k.means.fit <- kmeans(books_wide, 3) 
 ```
 
 ```{r}
