@@ -14,11 +14,13 @@ library(caret)
 ```
 
 ## Datei einlesen
+
 ```{r}
 all <- read_csv("all.csv")
 ```
 
 ## Books filtern und reinigen
+
 ```{r}
 users_books <- all %>%
   group_by(`Book-Title`) %>%
@@ -31,8 +33,6 @@ users_books <- all %>%
   
 ```
 
-
-
 ```{r}
 users_books <- users_books %>%
   unique()
@@ -40,6 +40,7 @@ books_wide <- users_books %>%
   mutate(i = 1) %>%
   spread(`Book-Title`,i,fill=0)
 ```
+
 
 ## Clustering
 
@@ -54,7 +55,9 @@ wss <- (nrow(books_wide.scaled)-1)*sum(apply(books_wide.scaled,2,var))
 plot(1:10, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares")
 ```
+
 ## (a) Irgendwie funktioniert das nicht, es dauert ewig zum Verarbeiten und es crashed immer am Ende.
+
 ```{r}
 books_wide.dist <- dist(books_wide.scaled, method="euclidean")
 books_wide.hc <- hclust(books_wide.dist, method = "ward.D2")
@@ -71,7 +74,9 @@ k.means.fit <- kmeans(books_wide.scaled, 3)
 ```{r}
 k.means.fit$size
 ```
+
 ## Ohne (a) durchzuführen taucht hier eine Fehlermeldung auf: Error in princomp.default(x, scores = TRUE, cor = ncol(x) > 2) : covariance matrix is not non-negative definite
+
 ```{r}
 clusplot(books_wide, k.means.fit$cluster, color=TRUE, shade=TRUE, labels=4, lines=0, main="K-means cluster plot")
 ```
