@@ -1,0 +1,77 @@
+---
+title: "Session 5 Hausaufgabe, Alvin Aziz"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Libraries laden
+
+```{r}
+library(tidyverse)
+library(cluster)
+library(caret)
+```
+
+## Datei einlesen
+```{r}
+all <- read_csv("all.csv")
+```
+
+## Books filtern und reinigen
+```{r}
+users_books <- all %>%
+  group_by(`Book-Title`) %>%
+  mutate(no_of_books = n()) %>%
+  filter(no_of_books > 49) %>%
+  filter(`Book-Rating` > 9) %>%
+  select(`User-ID`, `Book-Title`) %>% 
+  mutate(`Book-Title` = str_replace(`Book-Title`, "\\(.+\\)", "")) %>% 
+  mutate(`Book-Title` = str_replace_all(`Book-Title`, "[^[:alnum:]. ]", ""))
+  
+```
+
+
+
+```{r}
+users_books <- users_books %>%
+  unique()
+books_wide <- users_books %>%
+  mutate(i = 1) %>%
+  spread(`Book-Title`,i,fill=0)
+```
+
+## Clustering
+
+```{r}
+books_wide.scaled <- as.data.frame(scale(books_wide))
+```
+
+```{r}
+wss <- (nrow(books_wide.scaled)-1)*sum(apply(books_wide.scaled,2,var))
+  for (i in 2:10) wss[i] <- sum(kmeans(books_wide.scaled,
+                                       centers=i)$withinss)
+plot(1:10, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+```
+## (a) Irgendwie funktioniert das nicht, es dauert ewig zum Verarbeiten und es crashed immer am Ende.
+```{r}
+books_wide.dist <- dist(books_wide.scaled, method="euclidean")
+books_wide.hc <- hclust(books_wide.dist, method = "ward.D2")
+plot(books_wide.hc)
+groups <- cutree(books_wide.hc, k=3) 
+rect.hclust(books_wide.hc, k=3, border="red")
+```
+
+
+```{r}
+k.means.fit <- kmeans(books_wide.scaled, 3) 
+```
+
+```{r}
+k.means.fit$size
+```
+## Ohne (a) durchzuführen taucht hier eine Fehlermeldung auf: Error in princomp.default(x, scores = TRUE, cor = ncol(x) > 2) : covariance matrix is not non-negative definite
+```{r}
+clusplot(books_wide, k.means.fit$cluster, color=TRUE, shade=TRUE, labels=4, lines=0, main="K-means cluster plot")
+```
